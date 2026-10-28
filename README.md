@@ -36,7 +36,7 @@ ProductsHub is a simple online shopping application built with React and JavaScr
 
 ## Screenshots
 
-
+![Main](ProductsHub.png)
 
 ## Getting Started
 
