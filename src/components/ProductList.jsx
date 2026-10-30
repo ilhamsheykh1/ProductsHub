@@ -17,6 +17,8 @@ function ProductList(props) {
             key={product.id}
             product={product}
             addToCart={props.addToCart}
+            toggleWishlist={props.toggleWishlist}
+            isFavorite={props.isFavorite}
           />
         );
       })}

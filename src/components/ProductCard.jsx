@@ -1,36 +1,57 @@
+import { Link } from "react-router-dom";
+
 function ProductCard(props) {
   const product = props.product;
 
   return (
     <article className="product-card">
-      <div className="product-image">
-        <img src={product.thumbnail} alt={product.title} />
-      </div>
+      <button
+        type="button"
+        className="wishlist-button"
+        onClick={() => {
+          props.toggleWishlist(product);
+        }}
+      >
+        {props.isFavorite(product.id) ? "❤️" : "♡"}
+      </button>
 
-      <div className="product-info">
-        <span className="product-category">
-          {product.brand || product.category}
-        </span>
+      <Link
+        to={"/products/" + product.id}
+        className="product-details-link"
+      >
+        <div className="product-image">
+          <img
+            src={product.thumbnail}
+            alt={product.title}
+          />
+        </div>
 
-        <h3>{product.title}</h3>
+        <div className="product-info">
+          <span className="product-category">
+            {product.brand || product.category}
+          </span>
 
-        <p className="product-rating">
-          <span>★</span> {product.rating}
-        </p>
+          <h3>{product.title}</h3>
 
-        <p className="product-price">
-          ${product.price}
-        </p>
+          <p className="product-rating">
+            <span>★</span> {product.rating}
+          </p>
 
-        <button
-          className="add-button"
-          onClick={() => {
-            props.addToCart(product);
-          }}
-        >
-          Add to Cart
-        </button>
-      </div>
+          <p className="product-price">
+            ${product.price}
+          </p>
+        </div>
+      </Link>
+
+      <button
+        className="add-button"
+        type="button"
+        onClick={() => {
+          props.addToCart(product);
+        }}
+      >
+        Add to Cart
+      </button>
     </article>
   );
 }
