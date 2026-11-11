@@ -11,17 +11,15 @@ function ProductList(props) {
 
   return (
     <div className="products-grid">
-      {props.products.map((product) => {
-        return (
-          <ProductCard
-            key={product.id}
-            product={product}
-            addToCart={props.addToCart}
-            toggleWishlist={props.toggleWishlist}
-            isFavorite={props.isFavorite}
-          />
-        );
-      })}
+      {props.products.map((product) => (
+        <ProductCard
+          key={product.id}
+          product={product}
+          addToCart={props.addToCart}
+          toggleWishlist={props.toggleWishlist}
+          isFavorite={props.isFavorite}
+        />
+      ))}
     </div>
   );
 }

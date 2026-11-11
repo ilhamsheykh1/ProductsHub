@@ -1,3 +1,4 @@
+
 import { Link } from "react-router-dom";
 
 function Cart(props) {
@@ -59,7 +60,10 @@ function Cart(props) {
                       <button
                         type="button"
                         onClick={() => {
-                          props.decreaseQuantity(item.id);
+                          props.updateQuantity(
+                            item.id,
+                            item.quantity - 1
+                          );
                         }}
                       >
                         −
@@ -70,7 +74,10 @@ function Cart(props) {
                       <button
                         type="button"
                         onClick={() => {
-                          props.increaseQuantity(item.id);
+                          props.updateQuantity(
+                            item.id,
+                            item.quantity + 1
+                          );
                         }}
                       >
                         +

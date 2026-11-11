@@ -9,12 +9,11 @@ function ProductDetails(props) {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    async function getProduct() {
+    const getProduct = async () => {
       try {
-        setLoading(true);
-        setError("");
-
-        const response = await fetch("https://dummyjson.com/products/" + id);
+        const response = await fetch(
+          "https://dummyjson.com/products/" + id
+        );
 
         if (!response.ok) {
           throw new Error("Product not found");
@@ -25,70 +24,78 @@ function ProductDetails(props) {
         setProduct(data);
       } catch (error) {
         console.log(error);
-        setError("Could not load product.");
+        setError("Something went wrong");
       } finally {
         setLoading(false);
       }
-    }
+    };
 
     getProduct();
   }, [id]);
 
   if (loading) {
-    return <p className="status-message">Loading product...</p>;
+    return <h1>Loading...</h1>;
   }
 
   if (error) {
-    return <p className="status-message error-message">{error}</p>;
+    return <h1>{error}</h1>;
   }
 
   return (
-    <section className="product-details-page">
-      <Link to="/products" className="continue-shopping">
-        ← Back to Products
-      </Link>
+    <div className="container product-details">
+      <Link to="/products">Back to Products</Link>
 
-      <div className="product-details-container">
-        <div className="details-image">
-          <img
-            src={product.images[0]}
-            alt={product.title}
-          />
-        </div>
+      <img
+        src={product.images[0]}
+        alt={product.title}
+        className="details-image"
+      />
 
-        <div className="details-info">
-          <span className="product-category">
-            {product.brand || product.category}
-          </span>
+      <h1>{product.title}</h1>
 
-          <h1>{product.title}</h1>
+      <p>Brand: {product.brand || "Not specified"}</p>
+      <p>Category: {product.category}</p>
+      <p>Price: ${product.price}</p>
+      <p>Rating: ★ {product.rating}</p>
+      <p>Stock: {product.stock}</p>
 
-          <p className="product-rating">
-            ★ {product.rating}
-          </p>
+      <p className="details-description">
+        {product.description}
+      </p>
 
-          <p className="details-description">
-            {product.description}
-          </p>
+      <button onClick={() => props.addToCart(product)}>
+        Add to Cart
+      </button>
 
-          <h2 className="product-price">
-            ${product.price}
-          </h2>
+      <section className="reviews-section">
+        <h2>Customer Reviews</h2>
 
-          <p>Stock: {product.stock}</p>
+        {product.reviews && product.reviews.length > 0 ? (
+          product.reviews.map((review, index) => (
+            <div className="review-card" key={index}>
+              <h3>{review.reviewerName}</h3>
 
-          <button
-            className="add-button"
-            type="button"
-            onClick={() => {
-              props.addToCart(product);
-            }}
-          >
-            Add to Cart
-          </button>
-        </div>
-      </div>
-    </section>
+              <p className="review-rating">
+                Rating: {"★".repeat(review.rating)}
+              </p>
+
+              <p>{review.comment}</p>
+
+              <p>
+                <strong>Email:</strong> {review.reviewerEmail}
+              </p>
+
+              <p>
+                <strong>Date:</strong>{" "}
+                {new Date(review.date).toLocaleDateString()}
+              </p>
+            </div>
+          ))
+        ) : (
+          <p>No reviews available.</p>
+        )}
+      </section>
+    </div>
   );
 }
 

@@ -13,84 +13,109 @@ import ProductDetails from "./pages/ProductDetails";
 
 import "./App.css";
 
+const PRODUCTS_PER_PAGE = 8;
+
 function App() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
 
-  const [search, setSearch] = useState(
-    searchParams.get("search") || ""
-  );
-
-  const [category, setCategory] = useState(
-    searchParams.get("category") || ""
-  );
-
-  const [sort, setSort] = useState(
-    searchParams.get("sort") || "default"
-  );
-
-  const [minPrice, setMinPrice] = useState(
-    searchParams.get("min") || ""
-  );
-
-  const [maxPrice, setMaxPrice] = useState(
-    searchParams.get("max") || ""
-  );
-
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const [search, setSearch] = useState(searchParams.get("search") || "");
+  const [category, setCategory] = useState(searchParams.get("category") || "");
+  const [sort, setSort] = useState(searchParams.get("sort") || "default");
+  const [minPrice, setMinPrice] = useState(searchParams.get("minPrice") || "");
+  const [maxPrice, setMaxPrice] = useState(searchParams.get("maxPrice") || "");
+  const [minRating, setMinRating] = useState(searchParams.get("rating") || "");
+
+  const [currentPage, setCurrentPage] = useState(
+    Number(searchParams.get("page")) || 1
+  );
+
   const [cart, setCart] = useState(() => {
-    try {
-      const savedCart = localStorage.getItem("productCart");
-      return savedCart ? JSON.parse(savedCart) : [];
-    } catch (error) {
-      return [];
-    }
+    return JSON.parse(localStorage.getItem("productCart")) || [];
   });
 
   const [wishlist, setWishlist] = useState(() => {
-    try {
-      const savedWishlist = localStorage.getItem("productWishlist");
-      return savedWishlist ? JSON.parse(savedWishlist) : [];
-    } catch (error) {
-      return [];
-    }
+    return JSON.parse(localStorage.getItem("productWishlist")) || [];
   });
 
   const [toast, setToast] = useState("");
 
   useEffect(() => {
-    async function fetchData() {
+    const getCategories = async () => {
       try {
-        setLoading(true);
-        setError("");
+        const response = await fetch(
+          "https://dummyjson.com/products/categories"
+        );
 
-        const productsResponse = await fetch("https://dummyjson.com/products?limit=0");
-
-        const categoriesResponse = await fetch("https://dummyjson.com/products/categories");
-
-        if (!productsResponse.ok || !categoriesResponse.ok) {
-          throw new Error("Failed to load data");
-        }
-
-        const productsData = await productsResponse.json();
-        const categoriesData = await categoriesResponse.json();
-
-        setProducts(productsData.products);
-        setCategories(categoriesData);
+        const data = await response.json();
+        setCategories(data);
       } catch (error) {
         console.log(error);
-        setError("Could not load products. Please try again.");
+      }
+    };
+
+    getCategories();
+  }, []);
+
+  useEffect(() => {
+    const getProducts = async () => {
+      setLoading(true);
+      setError("");
+
+      try {
+        let url = "";
+
+        if (category !== "") {
+          url =
+            "https://dummyjson.com/products/category/" +
+            category +
+            "?limit=" +
+            PRODUCTS_PER_PAGE +
+            "&skip=" +
+            (currentPage - 1) * PRODUCTS_PER_PAGE;
+        } else if (search !== "") {
+          url =
+            "https://dummyjson.com/products/search?q=" +
+            encodeURIComponent(search) +
+            "&limit=" +
+            PRODUCTS_PER_PAGE +
+            "&skip=" +
+            (currentPage - 1) * PRODUCTS_PER_PAGE;
+        } else {
+          url =
+            "https://dummyjson.com/products?limit=" +
+            PRODUCTS_PER_PAGE +
+            "&skip=" +
+            (currentPage - 1) * PRODUCTS_PER_PAGE;
+        }
+
+        const response = await fetch(url);
+
+        if (!response.ok) {
+          throw new Error("Failed to load products");
+        }
+
+        const data = await response.json();
+
+        setProducts(data.products);
+        setTotalProducts(data.total);
+      } catch (error) {
+        console.log(error);
+        setError("Something went wrong");
       } finally {
         setLoading(false);
       }
-    }
+    };
 
-    fetchData();
-  }, []);
+    getProducts();
+  }, [search, category, currentPage]);
+
+  const [totalProducts, setTotalProducts] = useState(0);
 
   useEffect(() => {
     localStorage.setItem("productCart", JSON.stringify(cart));
@@ -101,117 +126,36 @@ function App() {
   }, [wishlist]);
 
   useEffect(() => {
-    setSearch(searchParams.get("search") || "");
-    setCategory(searchParams.get("category") || "");
-    setSort(searchParams.get("sort") || "default");
-    setMinPrice(searchParams.get("min") || "");
-    setMaxPrice(searchParams.get("max") || "");
-  }, [searchParams]);
-
-  function updateFilters(newFilters) {
     const params = new URLSearchParams();
 
-    if (newFilters.search) {
-      params.set("search", newFilters.search);
-    }
-
-    if (newFilters.category) {
-      params.set("category", newFilters.category);
-    }
-
-    if (newFilters.sort && newFilters.sort !== "default") {
-      params.set("sort", newFilters.sort);
-    }
-
-    if (newFilters.minPrice !== "") {
-      params.set("min", newFilters.minPrice);
-    }
-
-    if (newFilters.maxPrice !== "") {
-      params.set("max", newFilters.maxPrice);
-    }
+    if (search) params.set("search", search);
+    if (category) params.set("category", category);
+    if (sort !== "default") params.set("sort", sort);
+    if (minPrice) params.set("minPrice", minPrice);
+    if (maxPrice) params.set("maxPrice", maxPrice);
+    if (minRating) params.set("rating", minRating);
+    if (currentPage > 1) params.set("page", String(currentPage));
 
     setSearchParams(params, { replace: true });
-  }
+  }, [
+    search,
+    category,
+    sort,
+    minPrice,
+    maxPrice,
+    minRating,
+    currentPage,
+    setSearchParams
+  ]);
 
-  function handleSearchChange(value) {
-    setSearch(value);
-
-    updateFilters({
-      search: value,
-      category: category,
-      sort: sort,
-      minPrice: minPrice,
-      maxPrice: maxPrice
-    });
-  }
-
-  function handleCategoryChange(value) {
-    setCategory(value);
-
-    updateFilters({
-      search: search,
-      category: value,
-      sort: sort,
-      minPrice: minPrice,
-      maxPrice: maxPrice
-    });
-  }
-
-  function handleSortChange(value) {
-    setSort(value);
-
-    updateFilters({
-      search: search,
-      category: category,
-      sort: value,
-      minPrice: minPrice,
-      maxPrice: maxPrice
-    });
-  }
-
-  function handleMinPriceChange(value) {
-    setMinPrice(value);
-
-    updateFilters({
-      search: search,
-      category: category,
-      sort: sort,
-      minPrice: value,
-      maxPrice: maxPrice
-    });
-  }
-
-  function handleMaxPriceChange(value) {
-    setMaxPrice(value);
-
-    updateFilters({
-      search: search,
-      category: category,
-      sort: sort,
-      minPrice: minPrice,
-      maxPrice: value
-    });
-  }
-
-  function clearFilters() {
-    setSearch("");
-    setCategory("");
-    setSort("default");
-    setMinPrice("");
-    setMaxPrice("");
-
-    setSearchParams({}, { replace: true });
-  }
-
-  function addToCart(product) {
-    setCart((currentCart) => {
-      const existingProduct = currentCart.find((item) => {
+  const addToCart = (product) => {
+    setCart((oldCart) => {
+      const existingProduct = oldCart.find((item) => {
         return item.id === product.id;
       });
 
       if (existingProduct) {
-        return currentCart.map((item) => {
+        return oldCart.map((item) => {
           if (item.id === product.id) {
             return {
               ...item,
@@ -223,234 +167,217 @@ function App() {
         });
       }
 
-      return [
-        ...currentCart,
-        {
-          ...product,
-          quantity: 1
-        }
-      ];
+      return [...oldCart, { ...product, quantity: 1 }];
     });
 
     setToast("Added to cart");
-  }
 
-  useEffect(() => {
-    if (toast === "") {
-      return;
-    }
-
-    const timer = setTimeout(() => {
+    setTimeout(() => {
       setToast("");
     }, 2000);
+  };
 
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [toast]);
+  const toggleWishlist = (product) => {
+    setWishlist((oldWishlist) => {
+      const exists = oldWishlist.some((item) => {
+        return item.id === product.id;
+      });
 
-  function increaseQuantity(id) {
-    setCart((currentCart) => {
-      return currentCart.map((item) => {
+      if (exists) {
+        return oldWishlist.filter((item) => {
+          return item.id !== product.id;
+        });
+      }
+
+      return [...oldWishlist, product];
+    });
+  };
+
+  const isFavorite = (id) => {
+    return wishlist.some((item) => item.id === id);
+  };
+
+  const removeFromCart = (id) => {
+    setCart((oldCart) => {
+      return oldCart.filter((item) => item.id !== id);
+    });
+  };
+
+  const updateQuantity = (id, quantity) => {
+    if (quantity < 1) return;
+
+    setCart((oldCart) => {
+      return oldCart.map((item) => {
         if (item.id === id) {
-          return {
-            ...item,
-            quantity: item.quantity + 1
-          };
+          return { ...item, quantity: quantity };
         }
 
         return item;
       });
     });
-  }
+  };
 
-  function decreaseQuantity(id) {
-    setCart((currentCart) => {
-      return currentCart
-        .map((item) => {
-          if (item.id === id) {
-            return {
-              ...item,
-              quantity: item.quantity - 1
-            };
-          }
-
-          return item;
-        })
-        .filter((item) => {
-          return item.quantity > 0;
-        });
-    });
-  }
-
-  function removeFromCart(id) {
-    setCart((currentCart) => {
-      return currentCart.filter((item) => {
-        return item.id !== id;
-      });
-    });
-  }
-
-  function clearCart() {
+  const clearCart = () => {
     setCart([]);
-  }
+  };
 
-  function toggleWishlist(product) {
-    setWishlist((currentWishlist) => {
-      const isFavorite = currentWishlist.some((item) => {
-        return item.id === product.id;
-      });
+  const updateFilter = (setter, value) => {
+    setter(value);
+    setCurrentPage(1);
+  };
 
-      if (isFavorite) {
-        return currentWishlist.filter((item) => {
-          return item.id !== product.id;
-        });
-      }
+  const clearFilters = () => {
+    setSearch("");
+    setCategory("");
+    setSort("default");
+    setMinPrice("");
+    setMaxPrice("");
+    setMinRating("");
+    setCurrentPage(1);
+  };
 
-      return [...currentWishlist, product];
-    });
-  }
-
-  function isFavorite(id) {
-    return wishlist.some((item) => {
-      return item.id === id;
-    });
-  }
-
-  const visibleProducts = products.filter((product) => {
-    const matchesSearch = product.title
-      .toLowerCase()
-      .includes(search.trim().toLowerCase());
-
-    const matchesCategory =
-      category === "" || product.category === category;
-
+  let visibleProducts = products.filter((product) => {
     const matchesMinPrice =
       minPrice === "" || product.price >= Number(minPrice);
 
     const matchesMaxPrice =
       maxPrice === "" || product.price <= Number(maxPrice);
 
-    return (
-      matchesSearch &&
-      matchesCategory &&
-      matchesMinPrice &&
-      matchesMaxPrice
-    );
+    const matchesRating =
+      minRating === "" || product.rating >= Number(minRating);
+
+    return matchesMinPrice && matchesMaxPrice && matchesRating;
   });
 
   if (sort === "price-asc") {
-    visibleProducts.sort((a, b) => {
-      return a.price - b.price;
-    });
-  } else if (sort === "price-desc") {
-    visibleProducts.sort((a, b) => {
-      return b.price - a.price;
-    });
-  } else if (sort === "name-asc") {
-    visibleProducts.sort((a, b) => {
-      return a.title.localeCompare(b.title);
-    });
+    visibleProducts.sort((a, b) => a.price - b.price);
   }
+
+  if (sort === "price-desc") {
+    visibleProducts.sort((a, b) => b.price - a.price);
+  }
+
+  if (sort === "name-asc") {
+    visibleProducts.sort((a, b) => a.title.localeCompare(b.title));
+  }
+
+  const totalPages = Math.ceil(totalProducts / PRODUCTS_PER_PAGE);
 
   const cartCount = cart.reduce((total, item) => {
     return total + item.quantity;
   }, 0);
 
+  const hasFilters =
+    search !== "" ||
+    category !== "" ||
+    sort !== "default" ||
+    minPrice !== "" ||
+    maxPrice !== "" ||
+    minRating !== "";
+
   const catalogPage = (
-    <div className="shop-layout">
-      <section className="catalog">
-        <div className="catalog-heading">
-          <div>
-            <h1>All Products</h1>
-            <p>{visibleProducts.length} products found</p>
-          </div>
+    <div className="container">
+      <h1>Products</h1>
+
+      <Filters
+        search={search}
+        onSearchChange={(value) => updateFilter(setSearch, value)}
+        categories={categories}
+        category={category}
+        onCategoryChange={(value) => updateFilter(setCategory, value)}
+        sort={sort}
+        onSortChange={(value) => updateFilter(setSort, value)}
+        minPrice={minPrice}
+        onMinPriceChange={(value) => updateFilter(setMinPrice, value)}
+        maxPrice={maxPrice}
+        onMaxPriceChange={(value) => updateFilter(setMaxPrice, value)}
+        minRating={minRating}
+        onRatingChange={(value) => updateFilter(setMinRating, value)}
+        onClear={clearFilters}
+      />
+
+      {loading ? (
+        <h2>Loading...</h2>
+      ) : error ? (
+        <h2>{error}</h2>
+      ) : visibleProducts.length === 0 ? (
+        <div className="no-products">
+          <p>No products found.</p>
+
+          {hasFilters && (
+            <button onClick={clearFilters}>
+              Clear Filters
+            </button>
+          )}
         </div>
-
-        <Filters
-          search={search}
-          onSearchChange={handleSearchChange}
-          category={category}
-          onCategoryChange={handleCategoryChange}
-          categories={categories}
-          sort={sort}
-          onSortChange={handleSortChange}
-          minPrice={minPrice}
-          onMinPriceChange={handleMinPriceChange}
-          maxPrice={maxPrice}
-          onMaxPriceChange={handleMaxPriceChange}
-          onClear={clearFilters}
-        />
-
-        {loading ? (
-          <p className="status-message">Loading products...</p>
-        ) : error ? (
-          <p className="status-message error-message">{error}</p>
-        ) : (
+      ) : (
+        <>
           <ProductList
             products={visibleProducts}
             addToCart={addToCart}
             toggleWishlist={toggleWishlist}
             isFavorite={isFavorite}
           />
-        )}
-      </section>
+
+          <div className="pagination">
+            <button
+              onClick={() => setCurrentPage(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </button>
+
+            {Array.from({ length: totalPages }, (_, index) => {
+              const page = index + 1;
+
+              return (
+                <button
+                  key={page}
+                  className={currentPage === page ? "active-page" : ""}
+                  onClick={() => setCurrentPage(page)}
+                >
+                  {page}
+                </button>
+              );
+            })}
+
+            <button
+              onClick={() => setCurrentPage(currentPage + 1)}
+              disabled={currentPage === totalPages || totalPages === 0}
+            >
+              Next
+            </button>
+          </div>
+
+          <p className="page-info">
+            Page {currentPage} of {totalPages}
+          </p>
+        </>
+      )}
     </div>
   );
 
   return (
-    <main className="app">
+    <>
       <header className="navbar">
-        <Link className="logo" to="/products">
-          ProductsHub
-        </Link>
+        <Link to="/products">ProductsHub</Link>
 
-        <nav className="nav-links">
-          <Link to="/products">All Products</Link>
-
-          <Link to="/wishlist">
-            Wishlist ({wishlist.length})
-          </Link>
+        <nav>
+          <Link to="/products">Products</Link>
+          <Link to="/wishlist">Wishlist ({wishlist.length})</Link>
+          <Link to="/cart">Cart ({cartCount})</Link>
         </nav>
-
-        <div className="nav-search">
-          <span>⌕</span>
-
-          <input
-            type="text"
-            placeholder="Search products..."
-            value={search}
-            onChange={(event) => {
-              handleSearchChange(event.target.value);
-            }}
-          />
-        </div>
-
-        <Link className="cart-link" to="/cart">
-          <span className="cart-icon">🛒</span>
-          <span>Cart</span>
-          <span className="cart-count">{cartCount}</span>
-        </Link>
       </header>
 
-      {toast && (
-        <div className="toast">
-          {toast}
-        </div>
-      )}
+      {toast && <div className="toast">{toast}</div>}
 
       <Routes>
         <Route path="/" element={catalogPage} />
-
         <Route path="/products" element={catalogPage} />
 
         <Route
           path="/products/:id"
-          element={
-            <ProductDetails
-              addToCart={addToCart}
-            />
-          }
+          element={<ProductDetails addToCart={addToCart} />}
         />
 
         <Route
@@ -458,9 +385,8 @@ function App() {
           element={
             <Cart
               cart={cart}
-              increaseQuantity={increaseQuantity}
-              decreaseQuantity={decreaseQuantity}
               removeFromCart={removeFromCart}
+              updateQuantity={updateQuantity}
               clearCart={clearCart}
             />
           }
@@ -469,20 +395,24 @@ function App() {
         <Route
           path="/wishlist"
           element={
-            <section className="catalog wishlist-page">
+            <div className="container">
               <h1>My Wishlist</h1>
 
-              <ProductList
-                products={wishlist}
-                addToCart={addToCart}
-                toggleWishlist={toggleWishlist}
-                isFavorite={isFavorite}
-              />
-            </section>
+              {wishlist.length === 0 ? (
+                <p>Your wishlist is empty.</p>
+              ) : (
+                <ProductList
+                  products={wishlist}
+                  addToCart={addToCart}
+                  toggleWishlist={toggleWishlist}
+                  isFavorite={isFavorite}
+                />
+              )}
+            </div>
           }
         />
       </Routes>
-    </main>
+    </>
   );
 }
 
