@@ -1,10 +1,5 @@
 import { useState, useEffect } from "react";
-import {
-  Link,
-  Routes,
-  Route,
-  useSearchParams
-} from "react-router-dom";
+import { Link, Routes, Route, useSearchParams } from "react-router-dom";
 
 import Filters from "./components/Filters";
 import ProductList from "./components/ProductList";
@@ -18,6 +13,7 @@ const PRODUCTS_PER_PAGE = 8;
 function App() {
   const [searchParams, setSearchParams] = useSearchParams();
 
+  const [menuOpen, setMenuOpen] = useState(false);
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
 
@@ -32,7 +28,7 @@ function App() {
   const [minRating, setMinRating] = useState(searchParams.get("rating") || "");
 
   const [currentPage, setCurrentPage] = useState(
-    Number(searchParams.get("page")) || 1
+    Number(searchParams.get("page")) || 1,
   );
 
   const [cart, setCart] = useState(() => {
@@ -49,7 +45,7 @@ function App() {
     const getCategories = async () => {
       try {
         const response = await fetch(
-          "https://dummyjson.com/products/categories"
+          "https://dummyjson.com/products/categories",
         );
 
         const data = await response.json();
@@ -145,7 +141,7 @@ function App() {
     maxPrice,
     minRating,
     currentPage,
-    setSearchParams
+    setSearchParams,
   ]);
 
   const addToCart = (product) => {
@@ -159,7 +155,7 @@ function App() {
           if (item.id === product.id) {
             return {
               ...item,
-              quantity: item.quantity + 1
+              quantity: item.quantity + 1,
             };
           }
 
@@ -304,11 +300,7 @@ function App() {
         <div className="no-products">
           <p>No products found.</p>
 
-          {hasFilters && (
-            <button onClick={clearFilters}>
-              Clear Filters
-            </button>
-          )}
+          {hasFilters && <button onClick={clearFilters}>Clear Filters</button>}
         </div>
       ) : (
         <>
@@ -360,12 +352,40 @@ function App() {
   return (
     <>
       <header className="navbar">
-        <Link to="/products">ProductsHub</Link>
+        <Link
+          className="logo"
+          to="/products"
+          onClick={() => setMenuOpen(false)}
+        >
+          ProductsHub
+        </Link>
 
-        <nav>
-          <Link to="/products">Products</Link>
-          <Link to="/wishlist">Wishlist ({wishlist.length})</Link>
-          <Link to="/cart">Cart ({cartCount})</Link>
+        <button
+          className="hamburger-button"
+          type="button"
+          onClick={() => setMenuOpen(!menuOpen)}
+          aria-label="Toggle navigation menu"
+          aria-expanded={menuOpen}
+        >
+          <span className={menuOpen ? "line open" : "line"}></span>
+          <span className={menuOpen ? "line open" : "line"}></span>
+          <span className={menuOpen ? "line open" : "line"}></span>
+        </button>
+
+        <nav className={menuOpen ? "nav-links nav-open" : "nav-links"}>
+          <Link to="/products" onClick={() => setMenuOpen(false)}>
+            Products
+          </Link>
+
+          <Link to="/wishlist" onClick={() => setMenuOpen(false)}>
+            Wishlist
+            <span className="nav-count">{wishlist.length}</span>
+          </Link>
+
+          <Link to="/cart" onClick={() => setMenuOpen(false)}>
+            Cart
+            <span className="nav-count">{cartCount}</span>
+          </Link>
         </nav>
       </header>
 
