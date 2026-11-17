@@ -28,7 +28,7 @@ function App() {
   const [minRating, setMinRating] = useState(searchParams.get("rating") || "");
 
   const [currentPage, setCurrentPage] = useState(
-    Number(searchParams.get("page")) || 1,
+    Number(searchParams.get("page")) || 1
   );
 
   const [cart, setCart] = useState(() => {
@@ -45,10 +45,15 @@ function App() {
     const getCategories = async () => {
       try {
         const response = await fetch(
-          "https://dummyjson.com/products/categories",
+          "https://dummyjson.com/products/categories"
         );
 
+        if (!response.ok) {
+          throw new Error("Failed to load categories");
+        }
+
         const data = await response.json();
+
         setCategories(data);
       } catch (error) {
         console.log(error);
@@ -64,33 +69,9 @@ function App() {
       setError("");
 
       try {
-        let url = "";
-
-        if (category !== "") {
-          url =
-            "https://dummyjson.com/products/category/" +
-            category +
-            "?limit=" +
-            PRODUCTS_PER_PAGE +
-            "&skip=" +
-            (currentPage - 1) * PRODUCTS_PER_PAGE;
-        } else if (search !== "") {
-          url =
-            "https://dummyjson.com/products/search?q=" +
-            encodeURIComponent(search) +
-            "&limit=" +
-            PRODUCTS_PER_PAGE +
-            "&skip=" +
-            (currentPage - 1) * PRODUCTS_PER_PAGE;
-        } else {
-          url =
-            "https://dummyjson.com/products?limit=" +
-            PRODUCTS_PER_PAGE +
-            "&skip=" +
-            (currentPage - 1) * PRODUCTS_PER_PAGE;
-        }
-
-        const response = await fetch(url);
+        const response = await fetch(
+          "https://dummyjson.com/products?limit=0"
+        );
 
         if (!response.ok) {
           throw new Error("Failed to load products");
@@ -99,7 +80,6 @@ function App() {
         const data = await response.json();
 
         setProducts(data.products);
-        setTotalProducts(data.total);
       } catch (error) {
         console.log(error);
         setError("Something went wrong");
@@ -109,9 +89,7 @@ function App() {
     };
 
     getProducts();
-  }, [search, category, currentPage]);
-
-  const [totalProducts, setTotalProducts] = useState(0);
+  }, []);
 
   useEffect(() => {
     localStorage.setItem("productCart", JSON.stringify(cart));
@@ -141,7 +119,7 @@ function App() {
     maxPrice,
     minRating,
     currentPage,
-    setSearchParams,
+    setSearchParams
   ]);
 
   const addToCart = (product) => {
@@ -155,7 +133,7 @@ function App() {
           if (item.id === product.id) {
             return {
               ...item,
-              quantity: item.quantity + 1,
+              quantity: item.quantity + 1
             };
           }
 
@@ -232,7 +210,15 @@ function App() {
     setCurrentPage(1);
   };
 
-  let visibleProducts = products.filter((product) => {
+  let filteredProducts = products.filter((product) => {
+    const matchesSearch =
+      product.title.toLowerCase().includes(search.toLowerCase()) ||
+      product.description.toLowerCase().includes(search.toLowerCase()) ||
+      product.category.toLowerCase().includes(search.toLowerCase());
+
+    const matchesCategory =
+      category === "" || product.category === category;
+
     const matchesMinPrice =
       minPrice === "" || product.price >= Number(minPrice);
 
@@ -242,22 +228,37 @@ function App() {
     const matchesRating =
       minRating === "" || product.rating >= Number(minRating);
 
-    return matchesMinPrice && matchesMaxPrice && matchesRating;
+    return (
+      matchesSearch &&
+      matchesCategory &&
+      matchesMinPrice &&
+      matchesMaxPrice &&
+      matchesRating
+    );
   });
 
   if (sort === "price-asc") {
-    visibleProducts.sort((a, b) => a.price - b.price);
+    filteredProducts.sort((a, b) => a.price - b.price);
   }
 
   if (sort === "price-desc") {
-    visibleProducts.sort((a, b) => b.price - a.price);
+    filteredProducts.sort((a, b) => b.price - a.price);
   }
 
   if (sort === "name-asc") {
-    visibleProducts.sort((a, b) => a.title.localeCompare(b.title));
+    filteredProducts.sort((a, b) => a.title.localeCompare(b.title));
   }
 
-  const totalPages = Math.ceil(totalProducts / PRODUCTS_PER_PAGE);
+  const totalPages = Math.ceil(
+    filteredProducts.length / PRODUCTS_PER_PAGE
+  );
+
+  const startIndex = (currentPage - 1) * PRODUCTS_PER_PAGE;
+
+  const visibleProducts = filteredProducts.slice(
+    startIndex,
+    startIndex + PRODUCTS_PER_PAGE
+  );
 
   const cartCount = cart.reduce((total, item) => {
     return total + item.quantity;
@@ -296,11 +297,15 @@ function App() {
         <h2>Loading...</h2>
       ) : error ? (
         <h2>{error}</h2>
-      ) : visibleProducts.length === 0 ? (
+      ) : filteredProducts.length === 0 ? (
         <div className="no-products">
           <p>No products found.</p>
 
-          {hasFilters && <button onClick={clearFilters}>Clear Filters</button>}
+          {hasFilters && (
+            <button onClick={clearFilters}>
+              Clear Filters
+            </button>
+          )}
         </div>
       ) : (
         <>
