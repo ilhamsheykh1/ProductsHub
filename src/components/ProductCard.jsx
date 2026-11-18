@@ -1,3 +1,5 @@
+import formatPrice from "../utils/formatPrice";
+
 import { Link } from "react-router-dom";
 
 function ProductCard(props) {
@@ -38,7 +40,7 @@ function ProductCard(props) {
           </p>
 
           <p className="product-price">
-            ${product.price}
+            {formatPrice(product.price)}
           </p>
         </div>
       </Link>

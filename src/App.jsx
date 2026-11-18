@@ -48,12 +48,7 @@ function App() {
           "https://dummyjson.com/products/categories"
         );
 
-        if (!response.ok) {
-          throw new Error("Failed to load categories");
-        }
-
         const data = await response.json();
-
         setCategories(data);
       } catch (error) {
         console.log(error);
@@ -99,6 +94,72 @@ function App() {
     localStorage.setItem("productWishlist", JSON.stringify(wishlist));
   }, [wishlist]);
 
+  const query = search.trim().toLowerCase();
+
+  let filteredProducts = products.filter((product) => {
+    const matchesSearch =
+      product.title.toLowerCase().includes(query) ||
+      product.description.toLowerCase().includes(query) ||
+      product.category.toLowerCase().includes(query);
+
+    const matchesCategory =
+      category === "" || product.category === category;
+
+    const matchesMinPrice =
+      minPrice === "" || product.price >= Number(minPrice);
+
+    const matchesMaxPrice =
+      maxPrice === "" || product.price <= Number(maxPrice);
+
+    const matchesRating =
+      minRating === "" || product.rating >= Number(minRating);
+
+    return (
+      matchesSearch &&
+      matchesCategory &&
+      matchesMinPrice &&
+      matchesMaxPrice &&
+      matchesRating
+    );
+  });
+
+  if (sort === "price-asc") {
+    filteredProducts.sort((a, b) => a.price - b.price);
+  }
+
+  if (sort === "price-desc") {
+    filteredProducts.sort((a, b) => b.price - a.price);
+  }
+
+  if (sort === "name-asc") {
+    filteredProducts.sort((a, b) =>
+      a.title.localeCompare(b.title)
+    );
+  }
+
+  const totalPages = Math.ceil(
+    filteredProducts.length / PRODUCTS_PER_PAGE
+  );
+
+  const safeCurrentPage = Math.min(
+    Math.max(currentPage, 1),
+    Math.max(totalPages, 1)
+  );
+
+  const startIndex =
+    (safeCurrentPage - 1) * PRODUCTS_PER_PAGE;
+
+  const visibleProducts = filteredProducts.slice(
+    startIndex,
+    startIndex + PRODUCTS_PER_PAGE
+  );
+
+  useEffect(() => {
+    if (currentPage !== safeCurrentPage) {
+      setCurrentPage(safeCurrentPage);
+    }
+  }, [currentPage, safeCurrentPage]);
+
   useEffect(() => {
     const params = new URLSearchParams();
 
@@ -108,7 +169,9 @@ function App() {
     if (minPrice) params.set("minPrice", minPrice);
     if (maxPrice) params.set("maxPrice", maxPrice);
     if (minRating) params.set("rating", minRating);
-    if (currentPage > 1) params.set("page", String(currentPage));
+    if (safeCurrentPage > 1) {
+      params.set("page", String(safeCurrentPage));
+    }
 
     setSearchParams(params, { replace: true });
   }, [
@@ -118,7 +181,7 @@ function App() {
     minPrice,
     maxPrice,
     minRating,
-    currentPage,
+    safeCurrentPage,
     setSearchParams
   ]);
 
@@ -151,26 +214,6 @@ function App() {
     }, 2000);
   };
 
-  const toggleWishlist = (product) => {
-    setWishlist((oldWishlist) => {
-      const exists = oldWishlist.some((item) => {
-        return item.id === product.id;
-      });
-
-      if (exists) {
-        return oldWishlist.filter((item) => {
-          return item.id !== product.id;
-        });
-      }
-
-      return [...oldWishlist, product];
-    });
-  };
-
-  const isFavorite = (id) => {
-    return wishlist.some((item) => item.id === id);
-  };
-
   const removeFromCart = (id) => {
     setCart((oldCart) => {
       return oldCart.filter((item) => item.id !== id);
@@ -195,6 +238,26 @@ function App() {
     setCart([]);
   };
 
+  const toggleWishlist = (product) => {
+    setWishlist((oldWishlist) => {
+      const exists = oldWishlist.some((item) => {
+        return item.id === product.id;
+      });
+
+      if (exists) {
+        return oldWishlist.filter((item) => {
+          return item.id !== product.id;
+        });
+      }
+
+      return [...oldWishlist, product];
+    });
+  };
+
+  const isFavorite = (id) => {
+    return wishlist.some((item) => item.id === id);
+  };
+
   const updateFilter = (setter, value) => {
     setter(value);
     setCurrentPage(1);
@@ -210,62 +273,12 @@ function App() {
     setCurrentPage(1);
   };
 
-  let filteredProducts = products.filter((product) => {
-    const matchesSearch =
-      product.title.toLowerCase().includes(search.toLowerCase()) ||
-      product.description.toLowerCase().includes(search.toLowerCase()) ||
-      product.category.toLowerCase().includes(search.toLowerCase());
-
-    const matchesCategory =
-      category === "" || product.category === category;
-
-    const matchesMinPrice =
-      minPrice === "" || product.price >= Number(minPrice);
-
-    const matchesMaxPrice =
-      maxPrice === "" || product.price <= Number(maxPrice);
-
-    const matchesRating =
-      minRating === "" || product.rating >= Number(minRating);
-
-    return (
-      matchesSearch &&
-      matchesCategory &&
-      matchesMinPrice &&
-      matchesMaxPrice &&
-      matchesRating
-    );
-  });
-
-  if (sort === "price-asc") {
-    filteredProducts.sort((a, b) => a.price - b.price);
-  }
-
-  if (sort === "price-desc") {
-    filteredProducts.sort((a, b) => b.price - a.price);
-  }
-
-  if (sort === "name-asc") {
-    filteredProducts.sort((a, b) => a.title.localeCompare(b.title));
-  }
-
-  const totalPages = Math.ceil(
-    filteredProducts.length / PRODUCTS_PER_PAGE
-  );
-
-  const startIndex = (currentPage - 1) * PRODUCTS_PER_PAGE;
-
-  const visibleProducts = filteredProducts.slice(
-    startIndex,
-    startIndex + PRODUCTS_PER_PAGE
-  );
-
   const cartCount = cart.reduce((total, item) => {
     return total + item.quantity;
   }, 0);
 
   const hasFilters =
-    search !== "" ||
+    search.trim() !== "" ||
     category !== "" ||
     sort !== "default" ||
     minPrice !== "" ||
@@ -281,15 +294,23 @@ function App() {
         onSearchChange={(value) => updateFilter(setSearch, value)}
         categories={categories}
         category={category}
-        onCategoryChange={(value) => updateFilter(setCategory, value)}
+        onCategoryChange={(value) =>
+          updateFilter(setCategory, value)
+        }
         sort={sort}
         onSortChange={(value) => updateFilter(setSort, value)}
         minPrice={minPrice}
-        onMinPriceChange={(value) => updateFilter(setMinPrice, value)}
+        onMinPriceChange={(value) =>
+          updateFilter(setMinPrice, value)
+        }
         maxPrice={maxPrice}
-        onMaxPriceChange={(value) => updateFilter(setMaxPrice, value)}
+        onMaxPriceChange={(value) =>
+          updateFilter(setMaxPrice, value)
+        }
         minRating={minRating}
-        onRatingChange={(value) => updateFilter(setMinRating, value)}
+        onRatingChange={(value) =>
+          updateFilter(setMinRating, value)
+        }
         onClear={clearFilters}
       />
 
@@ -318,8 +339,10 @@ function App() {
 
           <div className="pagination">
             <button
-              onClick={() => setCurrentPage(currentPage - 1)}
-              disabled={currentPage === 1}
+              onClick={() =>
+                setCurrentPage(safeCurrentPage - 1)
+              }
+              disabled={safeCurrentPage === 1}
             >
               Previous
             </button>
@@ -330,7 +353,11 @@ function App() {
               return (
                 <button
                   key={page}
-                  className={currentPage === page ? "active-page" : ""}
+                  className={
+                    safeCurrentPage === page
+                      ? "active-page"
+                      : ""
+                  }
                   onClick={() => setCurrentPage(page)}
                 >
                   {page}
@@ -339,15 +366,17 @@ function App() {
             })}
 
             <button
-              onClick={() => setCurrentPage(currentPage + 1)}
-              disabled={currentPage === totalPages || totalPages === 0}
+              onClick={() =>
+                setCurrentPage(safeCurrentPage + 1)
+              }
+              disabled={safeCurrentPage === totalPages}
             >
               Next
             </button>
           </div>
 
           <p className="page-info">
-            Page {currentPage} of {totalPages}
+            Page {safeCurrentPage} of {totalPages}
           </p>
         </>
       )}
@@ -378,16 +407,25 @@ function App() {
         </button>
 
         <nav className={menuOpen ? "nav-links nav-open" : "nav-links"}>
-          <Link to="/products" onClick={() => setMenuOpen(false)}>
+          <Link
+            to="/products"
+            onClick={() => setMenuOpen(false)}
+          >
             Products
           </Link>
 
-          <Link to="/wishlist" onClick={() => setMenuOpen(false)}>
+          <Link
+            to="/wishlist"
+            onClick={() => setMenuOpen(false)}
+          >
             Wishlist
             <span className="nav-count">{wishlist.length}</span>
           </Link>
 
-          <Link to="/cart" onClick={() => setMenuOpen(false)}>
+          <Link
+            to="/cart"
+            onClick={() => setMenuOpen(false)}
+          >
             Cart
             <span className="nav-count">{cartCount}</span>
           </Link>

@@ -1,3 +1,5 @@
+import formatPrice from "../utils/formatPrice";
+
 import { Link } from "react-router-dom";
 
 function Cart(props) {
@@ -52,7 +54,7 @@ function Cart(props) {
                     </p>
 
                     <p className="cart-item-price">
-                      ${item.price}
+                      {formatPrice(item.price)}
                     </p>
 
                     <div className="quantity-controls">
@@ -86,7 +88,7 @@ function Cart(props) {
 
                   <div className="cart-item-actions">
                     <strong>
-                      ${(item.price * item.quantity)}
+                      {formatPrice(item.price * item.quantity)}
                     </strong>
 
                     <button
@@ -114,7 +116,7 @@ function Cart(props) {
 
             <div className="summary-row">
               <span>Subtotal</span>
-              <span>${total}</span>
+              <span>{formatPrice(total)}</span>
             </div>
 
             <div className="summary-row">
@@ -124,7 +126,7 @@ function Cart(props) {
 
             <div className="summary-total">
               <span>Total</span>
-              <strong>${total}</strong>
+              <strong>{formatPrice(total)}</strong>
             </div>
 
             <button

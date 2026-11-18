@@ -1,3 +1,5 @@
+import formatPrice from "../utils/formatPrice";
+
 import { useState, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
 
@@ -121,7 +123,7 @@ function ProductDetails(props) {
         <p>Category: {product.category}</p>
 
         <p className="details-price">
-          Price: ${product.price}
+          Price: {formatPrice(product.price)}
         </p>
 
         <p>Rating: ★ {product.rating}</p>
