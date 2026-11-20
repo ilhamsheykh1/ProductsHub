@@ -10,10 +10,24 @@ import "./App.css";
 
 const PRODUCTS_PER_PAGE = 8;
 
+function throttle(callback, delay) {
+  let lastCall = 0;
+
+  return function () {
+    const now = Date.now();
+
+    if (now - lastCall >= delay) {
+      lastCall = now;
+      callback();
+    }
+  };
+}
+
 function App() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showBackToTop, setShowBackToTop] = useState(false);
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
 
@@ -28,7 +42,7 @@ function App() {
   const [minRating, setMinRating] = useState(searchParams.get("rating") || "");
 
   const [currentPage, setCurrentPage] = useState(
-    Number(searchParams.get("page")) || 1
+    Number(searchParams.get("page")) || 1,
   );
 
   const [cart, setCart] = useState(() => {
@@ -42,10 +56,38 @@ function App() {
   const [toast, setToast] = useState("");
 
   useEffect(() => {
+    const handleScroll = throttle(() => {
+      setShowBackToTop(window.scrollY > 400);
+    }, 150);
+
+    window.addEventListener("scroll", handleScroll);
+
+    handleScroll();
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleResize = throttle(() => {
+      if (window.innerWidth > 768) {
+        setMenuOpen(false);
+      }
+    }, 150);
+
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
+
+  useEffect(() => {
     const getCategories = async () => {
       try {
         const response = await fetch(
-          "https://dummyjson.com/products/categories"
+          "https://dummyjson.com/products/categories",
         );
 
         const data = await response.json();
@@ -64,9 +106,7 @@ function App() {
       setError("");
 
       try {
-        const response = await fetch(
-          "https://dummyjson.com/products?limit=0"
-        );
+        const response = await fetch("https://dummyjson.com/products?limit=0");
 
         if (!response.ok) {
           throw new Error("Failed to load products");
@@ -102,8 +142,7 @@ function App() {
       product.description.toLowerCase().includes(query) ||
       product.category.toLowerCase().includes(query);
 
-    const matchesCategory =
-      category === "" || product.category === category;
+    const matchesCategory = category === "" || product.category === category;
 
     const matchesMinPrice =
       minPrice === "" || product.price >= Number(minPrice);
@@ -132,26 +171,21 @@ function App() {
   }
 
   if (sort === "name-asc") {
-    filteredProducts.sort((a, b) =>
-      a.title.localeCompare(b.title)
-    );
+    filteredProducts.sort((a, b) => a.title.localeCompare(b.title));
   }
 
-  const totalPages = Math.ceil(
-    filteredProducts.length / PRODUCTS_PER_PAGE
-  );
+  const totalPages = Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE);
 
   const safeCurrentPage = Math.min(
     Math.max(currentPage, 1),
-    Math.max(totalPages, 1)
+    Math.max(totalPages, 1),
   );
 
-  const startIndex =
-    (safeCurrentPage - 1) * PRODUCTS_PER_PAGE;
+  const startIndex = (safeCurrentPage - 1) * PRODUCTS_PER_PAGE;
 
   const visibleProducts = filteredProducts.slice(
     startIndex,
-    startIndex + PRODUCTS_PER_PAGE
+    startIndex + PRODUCTS_PER_PAGE,
   );
 
   useEffect(() => {
@@ -182,7 +216,7 @@ function App() {
     maxPrice,
     minRating,
     safeCurrentPage,
-    setSearchParams
+    setSearchParams,
   ]);
 
   const addToCart = (product) => {
@@ -196,7 +230,7 @@ function App() {
           if (item.id === product.id) {
             return {
               ...item,
-              quantity: item.quantity + 1
+              quantity: item.quantity + 1,
             };
           }
 
@@ -294,23 +328,15 @@ function App() {
         onSearchChange={(value) => updateFilter(setSearch, value)}
         categories={categories}
         category={category}
-        onCategoryChange={(value) =>
-          updateFilter(setCategory, value)
-        }
+        onCategoryChange={(value) => updateFilter(setCategory, value)}
         sort={sort}
         onSortChange={(value) => updateFilter(setSort, value)}
         minPrice={minPrice}
-        onMinPriceChange={(value) =>
-          updateFilter(setMinPrice, value)
-        }
+        onMinPriceChange={(value) => updateFilter(setMinPrice, value)}
         maxPrice={maxPrice}
-        onMaxPriceChange={(value) =>
-          updateFilter(setMaxPrice, value)
-        }
+        onMaxPriceChange={(value) => updateFilter(setMaxPrice, value)}
         minRating={minRating}
-        onRatingChange={(value) =>
-          updateFilter(setMinRating, value)
-        }
+        onRatingChange={(value) => updateFilter(setMinRating, value)}
         onClear={clearFilters}
       />
 
@@ -322,11 +348,7 @@ function App() {
         <div className="no-products">
           <p>No products found.</p>
 
-          {hasFilters && (
-            <button onClick={clearFilters}>
-              Clear Filters
-            </button>
-          )}
+          {hasFilters && <button onClick={clearFilters}>Clear Filters</button>}
         </div>
       ) : (
         <>
@@ -339,9 +361,7 @@ function App() {
 
           <div className="pagination">
             <button
-              onClick={() =>
-                setCurrentPage(safeCurrentPage - 1)
-              }
+              onClick={() => setCurrentPage(safeCurrentPage - 1)}
               disabled={safeCurrentPage === 1}
             >
               Previous
@@ -353,11 +373,7 @@ function App() {
               return (
                 <button
                   key={page}
-                  className={
-                    safeCurrentPage === page
-                      ? "active-page"
-                      : ""
-                  }
+                  className={safeCurrentPage === page ? "active-page" : ""}
                   onClick={() => setCurrentPage(page)}
                 >
                   {page}
@@ -366,9 +382,7 @@ function App() {
             })}
 
             <button
-              onClick={() =>
-                setCurrentPage(safeCurrentPage + 1)
-              }
+              onClick={() => setCurrentPage(safeCurrentPage + 1)}
               disabled={safeCurrentPage === totalPages}
             >
               Next
@@ -407,25 +421,16 @@ function App() {
         </button>
 
         <nav className={menuOpen ? "nav-links nav-open" : "nav-links"}>
-          <Link
-            to="/products"
-            onClick={() => setMenuOpen(false)}
-          >
+          <Link to="/products" onClick={() => setMenuOpen(false)}>
             Products
           </Link>
 
-          <Link
-            to="/wishlist"
-            onClick={() => setMenuOpen(false)}
-          >
+          <Link to="/wishlist" onClick={() => setMenuOpen(false)}>
             Wishlist
             <span className="nav-count">{wishlist.length}</span>
           </Link>
 
-          <Link
-            to="/cart"
-            onClick={() => setMenuOpen(false)}
-          >
+          <Link to="/cart" onClick={() => setMenuOpen(false)}>
             Cart
             <span className="nav-count">{cartCount}</span>
           </Link>
@@ -433,6 +438,20 @@ function App() {
       </header>
 
       {toast && <div className="toast">{toast}</div>}
+
+      {showBackToTop && (
+        <button
+          className="back-to-top"
+          onClick={() => {
+            window.scrollTo({
+              top: 0,
+              behavior: "smooth",
+            });
+          }}
+        >
+          ↑
+        </button>
+      )}
 
       <Routes>
         <Route path="/" element={catalogPage} />
