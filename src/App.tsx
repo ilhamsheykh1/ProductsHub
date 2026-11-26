@@ -8,9 +8,30 @@ import ProductDetails from "./pages/ProductDetails";
 
 import "./App.css";
 
+type Product = {
+  id: number;
+  title: string;
+  thumbnail: string;
+  brand?: string;
+  category: string;
+  rating: number;
+  price: number;
+  description?: string;
+};
+
+type CartItem = Product & {
+  quantity: number;
+};
+
+type Category = {
+  slug: string;
+  name: string;
+  url?: string;
+};
+
 const PRODUCTS_PER_PAGE = 8;
 
-function throttle(callback, delay) {
+function throttle(callback: () => void, delay: number): () => void {
   let lastCall = 0;
 
   return function () {
@@ -26,34 +47,34 @@ function throttle(callback, delay) {
 function App() {
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [showBackToTop, setShowBackToTop] = useState(false);
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const [menuOpen, setMenuOpen] = useState<boolean>(false);
+  const [showBackToTop, setShowBackToTop] = useState<boolean>(false);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>("");
 
-  const [search, setSearch] = useState(searchParams.get("search") || "");
-  const [category, setCategory] = useState(searchParams.get("category") || "");
-  const [sort, setSort] = useState(searchParams.get("sort") || "default");
-  const [minPrice, setMinPrice] = useState(searchParams.get("minPrice") || "");
-  const [maxPrice, setMaxPrice] = useState(searchParams.get("maxPrice") || "");
-  const [minRating, setMinRating] = useState(searchParams.get("rating") || "");
+  const [search, setSearch] = useState<string>(searchParams.get("search") || "");
+  const [category, setCategory] = useState<string>(searchParams.get("category") || "");
+  const [sort, setSort] = useState<string>(searchParams.get("sort") || "default");
+  const [minPrice, setMinPrice] = useState<string>(searchParams.get("minPrice") || "");
+  const [maxPrice, setMaxPrice] = useState<string>(searchParams.get("maxPrice") || "");
+  const [minRating, setMinRating] = useState<string>(searchParams.get("rating") || "");
 
-  const [currentPage, setCurrentPage] = useState(
+  const [currentPage, setCurrentPage] = useState<number>(
     Number(searchParams.get("page")) || 1,
   );
 
-  const [cart, setCart] = useState(() => {
-    return JSON.parse(localStorage.getItem("productCart")) || [];
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    return JSON.parse(localStorage.getItem("productCart") || "[]");
   });
 
-  const [wishlist, setWishlist] = useState(() => {
-    return JSON.parse(localStorage.getItem("productWishlist")) || [];
+  const [wishlist, setWishlist] = useState<Product[]>(() => {
+    return JSON.parse(localStorage.getItem("productWishlist") || "[]");
   });
 
-  const [toast, setToast] = useState("");
+  const [toast, setToast] = useState<string>("");
 
   useEffect(() => {
     const handleScroll = throttle(() => {
@@ -90,7 +111,7 @@ function App() {
           "https://dummyjson.com/products/categories",
         );
 
-        const data = await response.json();
+        const data: Category[] = await response.json();
         setCategories(data);
       } catch (error) {
         console.log(error);
@@ -112,7 +133,7 @@ function App() {
           throw new Error("Failed to load products");
         }
 
-        const data = await response.json();
+        const data: { products: Product[] } = await response.json();
 
         setProducts(data.products);
       } catch (error) {
@@ -139,7 +160,7 @@ function App() {
   let filteredProducts = products.filter((product) => {
     const matchesSearch =
       product.title.toLowerCase().includes(query) ||
-      product.description.toLowerCase().includes(query) ||
+      (product.description || "").toLowerCase().includes(query) ||
       product.category.toLowerCase().includes(query);
 
     const matchesCategory = category === "" || product.category === category;
@@ -219,7 +240,7 @@ function App() {
     setSearchParams,
   ]);
 
-  const addToCart = (product) => {
+  const addToCart = (product: Product): void => {
     setCart((oldCart) => {
       const existingProduct = oldCart.find((item) => {
         return item.id === product.id;
@@ -248,13 +269,13 @@ function App() {
     }, 2000);
   };
 
-  const removeFromCart = (id) => {
+  const removeFromCart = (id: number): void => {
     setCart((oldCart) => {
       return oldCart.filter((item) => item.id !== id);
     });
   };
 
-  const updateQuantity = (id, quantity) => {
+  const updateQuantity = (id: number, quantity: number): void => {
     if (quantity < 1) return;
 
     setCart((oldCart) => {
@@ -268,11 +289,11 @@ function App() {
     });
   };
 
-  const clearCart = () => {
+  const clearCart = (): void => {
     setCart([]);
   };
 
-  const toggleWishlist = (product) => {
+  const toggleWishlist = (product: Product): void => {
     setWishlist((oldWishlist) => {
       const exists = oldWishlist.some((item) => {
         return item.id === product.id;
@@ -288,16 +309,18 @@ function App() {
     });
   };
 
-  const isFavorite = (id) => {
+  const isFavorite = (id: number): boolean => {
     return wishlist.some((item) => item.id === id);
   };
 
-  const updateFilter = (setter, value) => {
+  const updateFilter = (
+    setter: (value: string) => void,
+    value: string): void => {
     setter(value);
     setCurrentPage(1);
   };
 
-  const clearFilters = () => {
+  const clearFilters = (): void => {
     setSearch("");
     setCategory("");
     setSort("default");
@@ -325,18 +348,18 @@ function App() {
 
       <Filters
         search={search}
-        onSearchChange={(value) => updateFilter(setSearch, value)}
+        onSearchChange={(value: string) => updateFilter(setSearch, value)}
         categories={categories}
         category={category}
-        onCategoryChange={(value) => updateFilter(setCategory, value)}
+        onCategoryChange={(value: string) => updateFilter(setCategory, value)}
         sort={sort}
-        onSortChange={(value) => updateFilter(setSort, value)}
+        onSortChange={(value: string) => updateFilter(setSort, value)}
         minPrice={minPrice}
-        onMinPriceChange={(value) => updateFilter(setMinPrice, value)}
+        onMinPriceChange={(value: string) => updateFilter(setMinPrice, value)}
         maxPrice={maxPrice}
-        onMaxPriceChange={(value) => updateFilter(setMaxPrice, value)}
+        onMaxPriceChange={(value: string) => updateFilter(setMaxPrice, value)}
         minRating={minRating}
-        onRatingChange={(value) => updateFilter(setMinRating, value)}
+        onRatingChange={(value: string) => updateFilter(setMinRating, value)}
         onClear={clearFilters}
       />
 

@@ -2,7 +2,23 @@ import formatPrice from "../utils/formatPrice";
 
 import { Link } from "react-router-dom";
 
-function Cart(props) {
+type CartItem = {
+    price: number;
+    quantity: number;
+    id: number;
+    thumbnail: string;
+    title: string;
+    category: string;
+};
+
+type CartProps = {
+    cart: CartItem[];
+    updateQuantity: (id: number, quantity: number) => void;
+    removeFromCart: (id: number) => void;
+    clearCart: () => void;
+};
+
+function Cart(props: CartProps) {
   const total = props.cart.reduce((sum, item) => {
     return sum + item.price * item.quantity;
   }, 0);

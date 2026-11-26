@@ -2,7 +2,24 @@ import formatPrice from "../utils/formatPrice";
 
 import { Link } from "react-router-dom";
 
-function ProductCard(props) {
+type Product = {
+    id: number;
+    title: string;
+    thumbnail: string;
+    brand?: string;
+    category: string;
+    rating: number;
+    price: number;
+};
+
+type ProductCardProps = {
+    product: Product;
+    toggleWishlist: (product: Product) => void;
+    isFavorite: (id: number) => boolean;
+    addToCart: (product: Product) => void;
+};
+
+function ProductCard(props: ProductCardProps) {
   const product = props.product;
 
   return (

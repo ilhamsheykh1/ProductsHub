@@ -1,4 +1,33 @@
-function Filters(props) {
+type Category = {
+    slug: string;
+    name: string;
+};
+
+type FiltersProps ={
+    search: string;
+    onSearchChange: (value: string) => void;
+
+    category: string;
+    onCategoryChange: (value: string) => void;
+
+    categories: Category[];
+
+    minPrice: string;
+    onMinPriceChange: (value: string) => void;
+
+    maxPrice: string;
+    onMaxPriceChange: (value: string) => void;
+
+    minRating: string;
+    onRatingChange: (value: string) => void;
+
+    sort: string;
+    onSortChange: (value: string) => void;
+
+    onClear: () => void;
+};
+
+function Filters(props: FiltersProps) {
   return (
     <div className="filters">
       <input

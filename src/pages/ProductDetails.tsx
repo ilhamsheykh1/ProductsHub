@@ -3,15 +3,41 @@ import formatPrice from "../utils/formatPrice";
 import { useState, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
 
-function ProductDetails(props) {
+type Review = {
+    reviewerName: string;
+    reviewerEmail: string;
+    rating: number;
+    comment: string;
+    date: number;
+};
+
+type Product = {
+    id: number;
+    title: string;
+    description: string;
+    category: string;
+    brand?: string;
+    price: number;
+    rating: number;
+    stock: number;
+    thumbnail: string;
+    images?: string[];
+    reviews: Review[];
+};
+
+type ProductDetailsProps = {
+    addToCart: (product: Product) => void;
+};
+
+function ProductDetails(props: ProductDetailsProps) {
   const { id } = useParams();
 
-  const [product, setProduct] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>("");
 
-  const [selectedImage, setSelectedImage] = useState("");
-  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string>("");
+  const [modalOpen, setModalOpen] = useState<boolean>(false);
 
   useEffect(() => {
     const getProduct = async () => {
@@ -52,7 +78,7 @@ function ProductDetails(props) {
   useEffect(() => {
     if (!modalOpen) return;
 
-    const closeOnEscape = (event) => {
+    const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setModalOpen(false);
       }
@@ -71,6 +97,10 @@ function ProductDetails(props) {
 
   if (error) {
     return <h1>{error}</h1>;
+  }
+
+  if (!product) {
+    return <h1>Product not found</h1>;
   }
 
   const images = product.images && product.images.length > 0
